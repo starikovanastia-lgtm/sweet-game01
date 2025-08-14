@@ -1,0 +1,58 @@
+export default function Page() {
+  return (
+    <main className="min-h-screen p-6 flex flex-col items-center justify-center gap-6">
+      <h1 className="text-2xl font-bold">Сладкая Память — Лайт</h1>
+      <p className="text-sm text-gray-600">Минимальная версия без shadcn/ui</p>
+      <Game />
+    </main>
+  );
+}
+
+'use client';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+function Game() {
+  const EMOJI = ['🥐','🧁','🍩','🍪','🍰','🍫','🍮','🍓'];
+  const pairs = 8;
+  const deckInit = () => shuffle([...EMOJI].flatMap((e,i)=>[{id:`${i}a`,e},{id:`${i}b`,e}]));
+  const [deck, setDeck] = useState(()=>deckInit());
+  const [flipped, setFlipped] = useState<string[]>([]);
+  const [matched, setMatched] = useState<string[]>([]);
+  const [moves, setMoves] = useState(0);
+  const [sec, setSec] = useState(0);
+  const [run, setRun] = useState(false);
+  useEffect(()=>{ if(!run && moves===0 && flipped.length===0) return; const t=setInterval(()=>setSec(s=>s+1),1000); return()=>clearInterval(t); },[run,moves,flipped]);
+  function flip(id:string){
+    if(matched.includes(id) || flipped.includes(id)) return;
+    if(!run) setRun(true);
+    const nf=[...flipped,id];
+    setFlipped(nf);
+    if(nf.length===2){
+      setMoves(m=>m+1);
+      const [a,b]=nf.map(i=>deck.find(c=>c.id===i)!);
+      if(a.e===b.e){ setTimeout(()=>{ setMatched(m=>[...m,a.id,b.id]); setFlipped([]); },250); }
+      else setTimeout(()=>setFlipped([]),700);
+    }
+  }
+  const done = matched.length===pairs*2;
+  return (
+    <div className="w-full max-w-xl">
+      <div className="mb-3 text-sm">⏱ {Math.floor(sec/60).toString().padStart(2,'0')}:{(sec%60).toString().padStart(2,'0')} · ♻️ {moves} · ✅ {matched.length/2}/{pairs}</div>
+      <div className="grid grid-cols-4 gap-3">
+        {deck.map(c=>{
+          const open = flipped.includes(c.id) || matched.includes(c.id);
+          return (
+            <button key={c.id} onClick={()=>flip(c.id)} className={`aspect-square rounded-xl border flex items-center justify-center text-3xl ${open?'bg-pink-50':'bg-white'}`}>{open?c.e:'🍰'}</button>
+          );
+        })}
+      </div>
+      {done && (
+        <div className="mt-4 p-3 border rounded-xl bg-pink-50">
+          Готово! Скидка 10% · Код: <code className="font-mono">SWEET-10</code>
+        </div>
+      )}
+      <div className="mt-4"><button className="px-3 py-2 border rounded-lg" onClick={()=>{ setDeck(deckInit()); setFlipped([]); setMatched([]); setMoves(0); setSec(0); setRun(false); }}>Рестарт</button></div>
+    </div>
+  );
+}
+function shuffle(a:any[]){ for(let i=a.length-1;i>0;i--){
